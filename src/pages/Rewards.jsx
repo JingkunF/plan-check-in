@@ -130,269 +130,274 @@ function Rewards() {
   console.log('showEditModal', showEditModal, 'selectedReward', selectedReward);
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题和积分余额 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">奖励兑换</h1>
-          <p className="text-gray-600">
-            创建和兑换奖励
-          </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center bg-warning-50 px-4 py-2 rounded-lg">
-            <Star className="h-5 w-5 text-warning-600 mr-2" />
-            <span className="font-semibold text-warning-900">
-              {pointsBalance} 积分
-            </span>
+    <>
+      <button style={{ position: 'fixed', top: 20, right: 20, zIndex: 999999 }} onClick={() => alert('test')}>
+        全局测试按钮
+      </button>
+      <div className="space-y-6">
+        {/* 页面标题和积分余额 */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">奖励兑换</h1>
+            <p className="text-gray-600">
+              创建和兑换奖励
+            </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="btn-primary flex items-center"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            创建奖励
-          </button>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center bg-warning-50 px-4 py-2 rounded-lg">
+              <Star className="h-5 w-5 text-warning-600 mr-2" />
+              <span className="font-semibold text-warning-900">
+                {pointsBalance} 积分
+              </span>
+            </div>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="btn-primary flex items-center"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              创建奖励
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* 奖励列表 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rewards.map((reward) => (
-          <div key={reward.id} className="card" style={{ position: 'relative' }}>
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-1">{reward.title}</h3>
-                {reward.description && (
-                  <p className="text-sm text-gray-600 mb-2">{reward.description}</p>
-                )}
-                <div className="flex items-center space-x-4 text-sm text-gray-500">
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 mr-1 text-warning-500" />
-                    {reward.points_required} 积分
+        {/* 奖励列表 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {rewards.map((reward) => (
+            <div key={reward.id} className="card" style={{ position: 'relative' }}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-1">{reward.title}</h3>
+                  {reward.description && (
+                    <p className="text-sm text-gray-600 mb-2">{reward.description}</p>
+                  )}
+                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <div className="flex items-center">
+                      <Star className="h-4 w-4 mr-1 text-warning-500" />
+                      {reward.points_required} 积分
+                    </div>
                   </div>
+                  {reward.created_by_name && (
+                    <div className="flex items-center mt-2 text-sm text-gray-500">
+                      <User className="h-4 w-4 mr-1" />
+                      创建者: {reward.created_by_name}
+                    </div>
+                  )}
                 </div>
-                {reward.created_by_name && (
-                  <div className="flex items-center mt-2 text-sm text-gray-500">
-                    <User className="h-4 w-4 mr-1" />
-                    创建者: {reward.created_by_name}
+                {String(reward.created_by) === String(user.id) && (
+                  <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: '8px', zIndex: 1000 }}>
+                    <button 
+                      style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', borderRadius: '50%', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', border: 'none', cursor: 'pointer' }}
+                      onClick={() => { 
+                        console.log('点击编辑奖励', reward); 
+                        handleEditReward(reward); 
+                      }}
+                    >
+                      <Edit className="h-4 w-4" style={{ pointerEvents: 'none' }} />
+                    </button>
+                    <button 
+                      style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', borderRadius: '50%', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', border: 'none', cursor: 'pointer' }}
+                      onClick={() => handleDeleteReward(reward.id)}
+                    >
+                      <Trash2 className="h-4 w-4" style={{ pointerEvents: 'none' }} />
+                    </button>
                   </div>
                 )}
               </div>
-              {String(reward.created_by) === String(user.id) && (
-                <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: '8px', zIndex: 1000 }}>
-                  <button 
-                    style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', borderRadius: '50%', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', border: 'none', cursor: 'pointer' }}
-                    onClick={() => { 
-                      console.log('点击编辑奖励', reward); 
-                      handleEditReward(reward); 
-                    }}
+              
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div className="text-xs text-gray-500">
+                  {new Date(reward.created_at).toLocaleDateString()}
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedReward(reward);
+                    setShowRedeemModal(true);
+                  }}
+                  disabled={pointsBalance < reward.points_required}
+                  className={`flex items-center text-sm ${
+                    pointsBalance >= reward.points_required
+                      ? 'btn-success'
+                      : 'btn-secondary opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-1" />
+                  {pointsBalance >= reward.points_required ? '兑换' : '积分不足'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {rewards.length === 0 && (
+          <div className="text-center py-12">
+            <Gift className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">暂无奖励</h3>
+            <p className="text-gray-500">
+              创建一个新奖励开始吧！
+            </p>
+          </div>
+        )}
+
+        {/* 创建奖励模态框 */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">创建奖励</h2>
+              <form onSubmit={handleCreateReward} className="space-y-4">
+                <div>
+                  <label className="label">奖励标题</label>
+                  <input
+                    type="text"
+                    required
+                    className="input"
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  />
+                </div>
+                
+                <div>
+                  <label className="label">奖励描述</label>
+                  <textarea
+                    className="input"
+                    rows="3"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  />
+                </div>
+                
+                <div>
+                  <label className="label">所需积分</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    className="input"
+                    value={formData.points_required}
+                    onChange={(e) => setFormData({...formData, points_required: parseInt(e.target.value)})}
+                  />
+                </div>
+                
+
+                
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="btn-secondary flex-1"
                   >
-                    <Edit className="h-4 w-4" style={{ pointerEvents: 'none' }} />
+                    取消
                   </button>
-                  <button 
-                    style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', borderRadius: '50%', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', border: 'none', cursor: 'pointer' }}
-                    onClick={() => handleDeleteReward(reward.id)}
-                  >
-                    <Trash2 className="h-4 w-4" style={{ pointerEvents: 'none' }} />
+                  <button type="submit" className="btn-primary flex-1">
+                    创建
                   </button>
                 </div>
-              )}
-            </div>
-            
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-              <div className="text-xs text-gray-500">
-                {new Date(reward.created_at).toLocaleDateString()}
-              </div>
-              <button
-                onClick={() => {
-                  setSelectedReward(reward);
-                  setShowRedeemModal(true);
-                }}
-                disabled={pointsBalance < reward.points_required}
-                className={`flex items-center text-sm ${
-                  pointsBalance >= reward.points_required
-                    ? 'btn-success'
-                    : 'btn-secondary opacity-50 cursor-not-allowed'
-                }`}
-              >
-                <ShoppingCart className="h-4 w-4 mr-1" />
-                {pointsBalance >= reward.points_required ? '兑换' : '积分不足'}
-              </button>
+              </form>
             </div>
           </div>
-        ))}
+        )}
+
+        {/* 兑换模态框 */}
+        {showRedeemModal && selectedReward && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">兑换奖励</h2>
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <h3 className="font-medium text-gray-900">{selectedReward.title}</h3>
+                <p className="text-sm text-gray-600">{selectedReward.description}</p>
+                <div className="flex items-center mt-2 text-sm text-gray-500">
+                  <Star className="h-4 w-4 mr-1 text-warning-500" />
+                  {selectedReward.points_required} 积分
+                </div>
+              </div>
+              
+              <div className="mb-4 p-3 bg-warning-50 rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-700">当前积分：</span>
+                  <span className="font-semibold text-warning-900">{pointsBalance}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm mt-1">
+                  <span className="text-gray-700">兑换后剩余：</span>
+                  <span className="font-semibold text-warning-900">
+                    {pointsBalance - selectedReward.points_required}
+                  </span>
+                </div>
+              </div>
+              
+              <form onSubmit={handleRedeem} className="space-y-4">
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowRedeemModal(false)}
+                    className="btn-secondary flex-1"
+                  >
+                    取消
+                  </button>
+                  <button type="submit" className="btn-success flex-1">
+                    确认兑换
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 编辑奖励模态框 */}
+        {showEditModal && selectedReward && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">编辑奖励</h2>
+              <form onSubmit={handleUpdateReward} className="space-y-4">
+                <div>
+                  <label className="label">奖励标题</label>
+                  <input
+                    type="text"
+                    required
+                    className="input"
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  />
+                </div>
+                
+                <div>
+                  <label className="label">奖励描述</label>
+                  <textarea
+                    className="input"
+                    rows="3"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  />
+                </div>
+                
+                <div>
+                  <label className="label">所需积分</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    className="input"
+                    value={formData.points_required}
+                    onChange={(e) => setFormData({...formData, points_required: parseInt(e.target.value)})}
+                  />
+                </div>
+                
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="btn-secondary flex-1"
+                  >
+                    取消
+                  </button>
+                  <button type="submit" className="btn-primary flex-1">
+                    更新
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
-
-      {rewards.length === 0 && (
-        <div className="text-center py-12">
-          <Gift className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">暂无奖励</h3>
-          <p className="text-gray-500">
-            创建一个新奖励开始吧！
-          </p>
-        </div>
-      )}
-
-      {/* 创建奖励模态框 */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">创建奖励</h2>
-            <form onSubmit={handleCreateReward} className="space-y-4">
-              <div>
-                <label className="label">奖励标题</label>
-                <input
-                  type="text"
-                  required
-                  className="input"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="label">奖励描述</label>
-                <textarea
-                  className="input"
-                  rows="3"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="label">所需积分</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  className="input"
-                  value={formData.points_required}
-                  onChange={(e) => setFormData({...formData, points_required: parseInt(e.target.value)})}
-                />
-              </div>
-              
-
-              
-              <div className="flex space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn-secondary flex-1"
-                >
-                  取消
-                </button>
-                <button type="submit" className="btn-primary flex-1">
-                  创建
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 兑换模态框 */}
-      {showRedeemModal && selectedReward && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">兑换奖励</h2>
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-900">{selectedReward.title}</h3>
-              <p className="text-sm text-gray-600">{selectedReward.description}</p>
-              <div className="flex items-center mt-2 text-sm text-gray-500">
-                <Star className="h-4 w-4 mr-1 text-warning-500" />
-                {selectedReward.points_required} 积分
-              </div>
-            </div>
-            
-            <div className="mb-4 p-3 bg-warning-50 rounded-lg">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-700">当前积分：</span>
-                <span className="font-semibold text-warning-900">{pointsBalance}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm mt-1">
-                <span className="text-gray-700">兑换后剩余：</span>
-                <span className="font-semibold text-warning-900">
-                  {pointsBalance - selectedReward.points_required}
-                </span>
-              </div>
-            </div>
-            
-            <form onSubmit={handleRedeem} className="space-y-4">
-              <div className="flex space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowRedeemModal(false)}
-                  className="btn-secondary flex-1"
-                >
-                  取消
-                </button>
-                <button type="submit" className="btn-success flex-1">
-                  确认兑换
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 编辑奖励模态框 */}
-      {showEditModal && selectedReward && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">编辑奖励</h2>
-            <form onSubmit={handleUpdateReward} className="space-y-4">
-              <div>
-                <label className="label">奖励标题</label>
-                <input
-                  type="text"
-                  required
-                  className="input"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="label">奖励描述</label>
-                <textarea
-                  className="input"
-                  rows="3"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="label">所需积分</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  className="input"
-                  value={formData.points_required}
-                  onChange={(e) => setFormData({...formData, points_required: parseInt(e.target.value)})}
-                />
-              </div>
-              
-              <div className="flex space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="btn-secondary flex-1"
-                >
-                  取消
-                </button>
-                <button type="submit" className="btn-primary flex-1">
-                  更新
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
