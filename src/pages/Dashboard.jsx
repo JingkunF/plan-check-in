@@ -26,6 +26,7 @@ import {
   Tooltip,
   Legend,
   BarElement,
+  Filler
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 
@@ -37,7 +38,8 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 function Dashboard() {
