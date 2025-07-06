@@ -1,0 +1,19 @@
+{
+  "name": "checki-in-tool",
+  "version": "1.0.0",
+  "description": "打卡-积分-奖励工具，用于家长和孩子在假期共同安排每日计划和跟踪",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd web && npm run dev",
+    "build": "cd web && npm run build",
+    "install-all": "npm install && cd server && npm install && cd ../web && npm install"
+  },
+  "keywords": ["打卡", "积分", "奖励", "亲子", "计划"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 
