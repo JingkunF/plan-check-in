@@ -156,7 +156,7 @@ app.post('/api/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     
     db.run(
-      'INSERT INTO users (username, password) VALUES (?, ?)',
+      'INSERT INTO users (username, password) VALUES ($1, $2)',
       [username, hashedPassword],
       function(err) {
         if (err) {
@@ -183,7 +183,7 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
 
-  db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
+  db.get('SELECT * FROM users WHERE username = $1', [username], async (err, user) => {
     if (err) {
       console.error('登录时数据库查询错误:', err);
       return res.status(500).json({ error: '服务器错误' });
@@ -221,7 +221,7 @@ app.post('/api/login', (req, res) => {
 
 // 获取用户信息
 app.get('/api/user', authenticateToken, (req, res) => {
-  db.get('SELECT id, username FROM users WHERE id = ?', [req.user.id], (err, user) => {
+  db.get('SELECT id, username FROM users WHERE id = $1', [req.user.id], (err, user) => {
     if (err) {
       return res.status(500).json({ error: '服务器错误' });
     }
@@ -231,7 +231,7 @@ app.get('/api/user', authenticateToken, (req, res) => {
 
 // 获取所有用户列表（用于统计）
 app.get('/api/users', authenticateToken, (req, res) => {
-  db.all('SELECT id, username FROM users', (err, users) => {
+  db.all('SELECT id, username FROM users', [], (err, users) => {
     if (err) {
       return res.status(500).json({ error: '服务器错误' });
     }
@@ -244,7 +244,7 @@ app.post('/api/tasks', authenticateToken, (req, res) => {
   const { title, description, points, category } = req.body;
 
   db.run(
-    'INSERT INTO daily_tasks (title, description, points, category, created_by) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO daily_tasks (title, description, points, category, created_by) VALUES ($1, $2, $3, $4, $5)',
     [title, description, points || 10, category, req.user.id],
     function(err) {
       if (err) {
@@ -271,9 +271,9 @@ app.get('/api/tasks', authenticateToken, (req, res) => {
     FROM daily_tasks dt
     JOIN users u ON dt.created_by = u.id 
     LEFT JOIN daily_checkins dc ON dt.id = dc.task_id 
-      AND dc.user_id = ? 
-      AND dc.check_date = ?
-    WHERE dt.is_active = 1
+      AND dc.user_id = $1 
+      AND dc.check_date = $2
+    WHERE dt.is_active = true
     ORDER BY dt.created_at DESC
   `;
 
@@ -291,7 +291,7 @@ app.put('/api/tasks/:id', authenticateToken, (req, res) => {
   const taskId = req.params.id;
 
   // 检查任务是否存在且属于当前用户
-  db.get('SELECT * FROM daily_tasks WHERE id = ? AND created_by = ?', [taskId, req.user.id], (err, task) => {
+  db.get('SELECT * FROM daily_tasks WHERE id = $1 AND created_by = $2', [taskId, req.user.id], (err, task) => {
     if (err) {
       return res.status(500).json({ error: '服务器错误' });
     }
@@ -302,7 +302,7 @@ app.put('/api/tasks/:id', authenticateToken, (req, res) => {
 
     // 更新任务
     db.run(
-      'UPDATE daily_tasks SET title = ?, description = ?, points = ?, category = ? WHERE id = ?',
+      'UPDATE daily_tasks SET title = $1, description = $2, points = $3, category = $4 WHERE id = $5',
       [title, description, points, category, taskId],
       function(err) {
         if (err) {
@@ -319,7 +319,7 @@ app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
   const taskId = req.params.id;
 
   // 检查任务是否存在且属于当前用户
-  db.get('SELECT * FROM daily_tasks WHERE id = ? AND created_by = ?', [taskId, req.user.id], (err, task) => {
+  db.get('SELECT * FROM daily_tasks WHERE id = $1 AND created_by = $2', [taskId, req.user.id], (err, task) => {
     if (err) {
       return res.status(500).json({ error: '服务器错误' });
     }
@@ -330,7 +330,7 @@ app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
 
     // 软删除任务（设置为非活跃状态）
     db.run(
-      'UPDATE daily_tasks SET is_active = 0 WHERE id = ?',
+      'UPDATE daily_tasks SET is_active = false WHERE id = $1',
       [taskId],
       function(err) {
         if (err) {
@@ -346,7 +346,7 @@ app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
 app.post('/api/checkin', authenticateToken, (req, res) => {
   const { task_id, notes } = req.body;
 
-  db.get('SELECT * FROM daily_tasks WHERE id = ? AND is_active = 1', [task_id], (err, task) => {
+  db.get('SELECT * FROM daily_tasks WHERE id = $1 AND is_active = true', [task_id], (err, task) => {
     if (err) {
       return res.status(500).json({ error: '服务器错误' });
     }
@@ -359,7 +359,7 @@ app.post('/api/checkin', authenticateToken, (req, res) => {
     
     // 检查今天是否已经打卡
     db.get(
-      'SELECT * FROM daily_checkins WHERE task_id = ? AND user_id = ? AND check_date = ?',
+      'SELECT * FROM daily_checkins WHERE task_id = $1 AND user_id = $2 AND check_date = $3',
       [task_id, req.user.id, today],
       (err, existingCheckin) => {
         if (err) {
@@ -372,7 +372,7 @@ app.post('/api/checkin', authenticateToken, (req, res) => {
 
         // 执行打卡
         db.run(
-          'INSERT INTO daily_checkins (task_id, user_id, check_date, notes) VALUES (?, ?, ?, ?)',
+          'INSERT INTO daily_checkins (task_id, user_id, check_date, notes) VALUES ($1, $2, $3, $4)',
           [task_id, req.user.id, today, notes],
           function(err) {
             if (err) {
@@ -381,7 +381,7 @@ app.post('/api/checkin', authenticateToken, (req, res) => {
 
             // 自动获得积分
             db.run(
-              'INSERT INTO points_history (user_id, points, type, description) VALUES (?, ?, ?, ?)',
+              'INSERT INTO points_history (user_id, points, type, description) VALUES ($1, $2, $3, $4)',
               [req.user.id, task.points, 'earned', `今日完成任务: ${task.title}`]
             );
 
@@ -403,7 +403,7 @@ app.get('/api/checkins', authenticateToken, (req, res) => {
     ORDER BY c.checked_at DESC
   `;
 
-  db.all(query, (err, checkins) => {
+  db.all(query, [], (err, checkins) => {
     if (err) {
       return res.status(500).json({ error: '获取打卡记录失败' });
     }
@@ -417,7 +417,7 @@ app.get('/api/points', authenticateToken, (req, res) => {
     SELECT ph.*, u.username
     FROM points_history ph
     JOIN users u ON ph.user_id = u.id
-    WHERE ph.user_id = ?
+    WHERE ph.user_id = $1
     ORDER BY ph.created_at DESC
   `;
 
@@ -435,7 +435,7 @@ app.get('/api/points/balance', authenticateToken, (req, res) => {
     SELECT COALESCE(SUM(CASE WHEN type = 'earned' THEN points ELSE 0 END), 0) as earned,
            COALESCE(SUM(CASE WHEN type = 'spent' THEN points ELSE 0 END), 0) as spent
     FROM points_history 
-    WHERE user_id = ?
+    WHERE user_id = $1
   `;
 
   db.get(query, [req.user.id], (err, result) => {
@@ -453,7 +453,7 @@ app.post('/api/rewards', authenticateToken, (req, res) => {
   const { title, description, points_required } = req.body;
 
   db.run(
-    'INSERT INTO rewards (title, description, points_required, created_by) VALUES (?, ?, ?, ?)',
+    'INSERT INTO rewards (title, description, points_required, created_by) VALUES ($1, $2, $3, $4)',
     [title, description, points_required, req.user.id],
     function(err) {
       if (err) {
@@ -473,11 +473,11 @@ app.get('/api/rewards', authenticateToken, (req, res) => {
     SELECT r.*, u.username as created_by_name 
     FROM rewards r
     JOIN users u ON r.created_by = u.id
-    WHERE r.is_active = 1
+    WHERE r.is_active = true
     ORDER BY r.created_at DESC
   `;
 
-  db.all(query, (err, rewards) => {
+  db.all(query, [], (err, rewards) => {
     if (err) {
       return res.status(500).json({ error: '获取奖励失败' });
     }
@@ -489,7 +489,7 @@ app.get('/api/rewards', authenticateToken, (req, res) => {
 app.post('/api/rewards/:id/redeem', authenticateToken, (req, res) => {
   const { id } = req.params;
 
-  db.get('SELECT * FROM rewards WHERE id = ? AND is_active = 1', [id], (err, reward) => {
+  db.get('SELECT * FROM rewards WHERE id = $1 AND is_active = true', [id], (err, reward) => {
     if (err) {
       return res.status(500).json({ error: '服务器错误' });
     }
@@ -503,7 +503,7 @@ app.post('/api/rewards/:id/redeem', authenticateToken, (req, res) => {
         COALESCE(SUM(CASE WHEN type = 'earned' THEN points ELSE 0 END), 0) as earned,
         COALESCE(SUM(CASE WHEN type = 'spent' THEN points ELSE 0 END), 0) as spent
       FROM points_history 
-      WHERE user_id = ?`,
+      WHERE user_id = $1`,
       [req.user.id],
       (err, points) => {
         if (err) {
@@ -516,7 +516,7 @@ app.post('/api/rewards/:id/redeem', authenticateToken, (req, res) => {
         }
 
         db.run(
-          'INSERT INTO reward_redemptions (reward_id, user_id, points_spent) VALUES (?, ?, ?)',
+          'INSERT INTO reward_redemptions (reward_id, user_id, points_spent) VALUES ($1, $2, $3)',
           [id, req.user.id, reward.points_required],
           function(err) {
             if (err) {
@@ -524,7 +524,7 @@ app.post('/api/rewards/:id/redeem', authenticateToken, (req, res) => {
             }
 
             db.run(
-              'INSERT INTO points_history (user_id, points, type, description) VALUES (?, ?, ?, ?)',
+              'INSERT INTO points_history (user_id, points, type, description) VALUES ($1, $2, $3, $4)',
               [req.user.id, reward.points_required, 'spent', `兑换奖励: ${reward.title}`]
             );
 
@@ -542,7 +542,7 @@ app.put('/api/rewards/:id', authenticateToken, (req, res) => {
   const { title, description, points_required } = req.body;
 
   // 检查奖励是否存在且属于当前用户
-  db.get('SELECT * FROM rewards WHERE id = ? AND created_by = ? AND is_active = 1', [id, req.user.id], (err, reward) => {
+  db.get('SELECT * FROM rewards WHERE id = $1 AND created_by = $2 AND is_active = true', [id, req.user.id], (err, reward) => {
     if (err) {
       return res.status(500).json({ error: '服务器错误' });
     }
@@ -553,7 +553,7 @@ app.put('/api/rewards/:id', authenticateToken, (req, res) => {
 
     // 更新奖励
     db.run(
-      'UPDATE rewards SET title = ?, description = ?, points_required = ? WHERE id = ?',
+      'UPDATE rewards SET title = $1, description = $2, points_required = $3 WHERE id = $4',
       [title, description, points_required, id],
       function(err) {
         if (err) {
@@ -570,7 +570,7 @@ app.delete('/api/rewards/:id', authenticateToken, (req, res) => {
   const { id } = req.params;
 
   // 检查奖励是否存在且属于当前用户
-  db.get('SELECT * FROM rewards WHERE id = ? AND created_by = ? AND is_active = 1', [id, req.user.id], (err, reward) => {
+  db.get('SELECT * FROM rewards WHERE id = $1 AND created_by = $2 AND is_active = true', [id, req.user.id], (err, reward) => {
     if (err) {
       return res.status(500).json({ error: '服务器错误' });
     }
@@ -581,7 +581,7 @@ app.delete('/api/rewards/:id', authenticateToken, (req, res) => {
 
     // 软删除奖励（设置为非活跃状态）
     db.run(
-      'UPDATE rewards SET is_active = 0 WHERE id = ?',
+      'UPDATE rewards SET is_active = false WHERE id = $1',
       [id],
       function(err) {
         if (err) {
@@ -604,10 +604,10 @@ app.get('/api/stats', authenticateToken, (req, res) => {
       COALESCE(SUM(CASE WHEN ph.type = 'earned' THEN ph.points ELSE 0 END), 0) as total_earned,
       COALESCE(SUM(CASE WHEN ph.type = 'spent' THEN ph.points ELSE 0 END), 0) as total_spent
     FROM users u
-    LEFT JOIN daily_tasks dt ON u.id = dt.created_by AND dt.is_active = 1
-    LEFT JOIN daily_checkins dc ON dt.id = dc.task_id AND dc.user_id = u.id AND dc.check_date = ?
+    LEFT JOIN daily_tasks dt ON u.id = dt.created_by AND dt.is_active = true
+    LEFT JOIN daily_checkins dc ON dt.id = dc.task_id AND dc.user_id = u.id AND dc.check_date = $1
     LEFT JOIN points_history ph ON u.id = ph.user_id
-    WHERE u.id = ?
+    WHERE u.id = $2
   `, [today, req.user.id], (err, stats) => {
     if (err) {
       return res.status(500).json({ error: '获取统计数据失败' });
