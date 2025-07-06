@@ -507,6 +507,63 @@ app.post('/api/rewards/:id/redeem', authenticateToken, (req, res) => {
   });
 });
 
+// 编辑奖励
+app.put('/api/rewards/:id', authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { title, description, points_required } = req.body;
+
+  // 检查奖励是否存在且属于当前用户
+  db.get('SELECT * FROM rewards WHERE id = ? AND created_by = ? AND is_active = 1', [id, req.user.id], (err, reward) => {
+    if (err) {
+      return res.status(500).json({ error: '服务器错误' });
+    }
+    
+    if (!reward) {
+      return res.status(404).json({ error: '奖励不存在或无权限修改' });
+    }
+
+    // 更新奖励
+    db.run(
+      'UPDATE rewards SET title = ?, description = ?, points_required = ? WHERE id = ?',
+      [title, description, points_required, id],
+      function(err) {
+        if (err) {
+          return res.status(500).json({ error: '更新奖励失败' });
+        }
+        res.json({ message: '奖励更新成功' });
+      }
+    );
+  });
+});
+
+// 删除奖励
+app.delete('/api/rewards/:id', authenticateToken, (req, res) => {
+  const { id } = req.params;
+
+  // 检查奖励是否存在且属于当前用户
+  db.get('SELECT * FROM rewards WHERE id = ? AND created_by = ? AND is_active = 1', [id, req.user.id], (err, reward) => {
+    if (err) {
+      return res.status(500).json({ error: '服务器错误' });
+    }
+    
+    if (!reward) {
+      return res.status(404).json({ error: '奖励不存在或无权限删除' });
+    }
+
+    // 软删除奖励（设置为非活跃状态）
+    db.run(
+      'UPDATE rewards SET is_active = 0 WHERE id = ?',
+      [id],
+      function(err) {
+        if (err) {
+          return res.status(500).json({ error: '删除奖励失败' });
+        }
+        res.json({ message: '奖励删除成功' });
+      }
+    );
+  });
+});
+
 // 获取今日统计数据
 app.get('/api/stats', authenticateToken, (req, res) => {
   const today = new Date().toISOString().split('T')[0];

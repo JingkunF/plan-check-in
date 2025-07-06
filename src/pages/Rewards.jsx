@@ -17,6 +17,7 @@ function Rewards() {
   const [pointsBalance, setPointsBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [selectedReward, setSelectedReward] = useState(null);
   const [formData, setFormData] = useState({
@@ -63,6 +64,33 @@ function Rewards() {
       fetchRewards();
     } catch (error) {
       console.error('创建奖励失败:', error);
+    }
+  };
+
+  const handleEditReward = (reward) => {
+    setSelectedReward(reward);
+    setFormData({
+      title: reward.title,
+      description: reward.description || '',
+      points_required: reward.points_required
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateReward = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.put(`/api/rewards/${selectedReward.id}`, formData);
+      setShowEditModal(false);
+      setSelectedReward(null);
+      setFormData({
+        title: '',
+        description: '',
+        points_required: 50
+      });
+      fetchRewards();
+    } catch (error) {
+      console.error('更新奖励失败:', error);
     }
   };
 
@@ -150,7 +178,10 @@ function Rewards() {
               </div>
               {reward.created_by === user.id && (
                 <div className="flex space-x-2">
-                  <button className="text-gray-400 hover:text-gray-600">
+                  <button 
+                    onClick={() => handleEditReward(reward)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
                     <Edit className="h-4 w-4" />
                   </button>
                   <button 
@@ -293,6 +324,62 @@ function Rewards() {
                 </button>
                 <button type="submit" className="btn-success flex-1">
                   确认兑换
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑奖励模态框 */}
+      {showEditModal && selectedReward && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">编辑奖励</h2>
+            <form onSubmit={handleUpdateReward} className="space-y-4">
+              <div>
+                <label className="label">奖励标题</label>
+                <input
+                  type="text"
+                  required
+                  className="input"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <label className="label">奖励描述</label>
+                <textarea
+                  className="input"
+                  rows="3"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <label className="label">所需积分</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  className="input"
+                  value={formData.points_required}
+                  onChange={(e) => setFormData({...formData, points_required: parseInt(e.target.value)})}
+                />
+              </div>
+              
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="btn-secondary flex-1"
+                >
+                  取消
+                </button>
+                <button type="submit" className="btn-primary flex-1">
+                  更新
                 </button>
               </div>
             </form>
