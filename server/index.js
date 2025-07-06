@@ -160,7 +160,8 @@ app.post('/api/register', async (req, res) => {
       [username, hashedPassword],
       function(err) {
         if (err) {
-          if (err.message.includes('UNIQUE constraint failed')) {
+          console.error('注册时数据库错误:', err);
+          if (err.message && err.message.includes('UNIQUE')) {
             return res.status(400).json({ error: '用户名已存在' });
           }
           return res.status(500).json({ error: '注册失败' });
@@ -173,6 +174,7 @@ app.post('/api/register', async (req, res) => {
       }
     );
   } catch (error) {
+    console.error('注册时异常:', error);
     res.status(500).json({ error: '服务器错误' });
   }
 });
@@ -183,6 +185,7 @@ app.post('/api/login', (req, res) => {
 
   db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
     if (err) {
+      console.error('登录时数据库查询错误:', err);
       return res.status(500).json({ error: '服务器错误' });
     }
     
@@ -190,24 +193,29 @@ app.post('/api/login', (req, res) => {
       return res.status(401).json({ error: '用户名或密码错误' });
     }
 
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ error: '用户名或密码错误' });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, username: user.username },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        username: user.username
+    try {
+      const validPassword = await bcrypt.compare(password, user.password);
+      if (!validPassword) {
+        return res.status(401).json({ error: '用户名或密码错误' });
       }
-    });
+
+      const token = jwt.sign(
+        { id: user.id, username: user.username },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      res.json({
+        token,
+        user: {
+          id: user.id,
+          username: user.username
+        }
+      });
+    } catch (error) {
+      console.error('登录时密码校验或签名异常:', error);
+      res.status(500).json({ error: '服务器错误' });
+    }
   });
 });
 
