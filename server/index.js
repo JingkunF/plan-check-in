@@ -5,11 +5,14 @@ const jwt = require('jsonwebtoken');
 const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // 中间件
-app.use(cors());
+app.use(cors({
+  origin: 'https://你的前端域名', // 例如 https://plan-check-in-frontend.vercel.app
+  credentials: true
+}));
 app.use(express.json());
 
 // 数据库配置
@@ -223,6 +226,7 @@ app.post('/api/login', (req, res) => {
 app.get('/api/user', authenticateToken, (req, res) => {
   db.get('SELECT id, username FROM users WHERE id = $1', [req.user.id], (err, user) => {
     if (err) {
+      console.error('获取用户信息失败:', err);
       return res.status(500).json({ error: '服务器错误' });
     }
     res.json(user);
@@ -233,6 +237,7 @@ app.get('/api/user', authenticateToken, (req, res) => {
 app.get('/api/users', authenticateToken, (req, res) => {
   db.all('SELECT id, username FROM users', [], (err, users) => {
     if (err) {
+      console.error('获取用户列表失败:', err);
       return res.status(500).json({ error: '服务器错误' });
     }
     res.json(users);
@@ -248,6 +253,7 @@ app.post('/api/tasks', authenticateToken, (req, res) => {
     [title, description, points || 10, category, req.user.id],
     function(err) {
       if (err) {
+        console.error('创建每日任务失败:', err);
         return res.status(500).json({ error: '创建任务失败' });
       }
       res.json({ 
@@ -279,6 +285,7 @@ app.get('/api/tasks', authenticateToken, (req, res) => {
 
   db.all(query, [req.user.id, today], (err, tasks) => {
     if (err) {
+      console.error('获取每日任务失败:', err);
       return res.status(500).json({ error: '获取任务失败' });
     }
     res.json(tasks);
@@ -290,9 +297,9 @@ app.put('/api/tasks/:id', authenticateToken, (req, res) => {
   const { title, description, points, category } = req.body;
   const taskId = req.params.id;
 
-  // 检查任务是否存在且属于当前用户
   db.get('SELECT * FROM daily_tasks WHERE id = $1 AND created_by = $2', [taskId, req.user.id], (err, task) => {
     if (err) {
+      console.error('查询任务失败:', err);
       return res.status(500).json({ error: '服务器错误' });
     }
     
@@ -300,12 +307,12 @@ app.put('/api/tasks/:id', authenticateToken, (req, res) => {
       return res.status(404).json({ error: '任务不存在或无权限修改' });
     }
 
-    // 更新任务
     db.run(
       'UPDATE daily_tasks SET title = $1, description = $2, points = $3, category = $4 WHERE id = $5',
       [title, description, points, category, taskId],
       function(err) {
         if (err) {
+          console.error('更新任务失败:', err);
           return res.status(500).json({ error: '更新任务失败' });
         }
         res.json({ message: '任务更新成功' });
@@ -318,9 +325,9 @@ app.put('/api/tasks/:id', authenticateToken, (req, res) => {
 app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
   const taskId = req.params.id;
 
-  // 检查任务是否存在且属于当前用户
   db.get('SELECT * FROM daily_tasks WHERE id = $1 AND created_by = $2', [taskId, req.user.id], (err, task) => {
     if (err) {
+      console.error('查询任务失败:', err);
       return res.status(500).json({ error: '服务器错误' });
     }
     
@@ -328,12 +335,12 @@ app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
       return res.status(404).json({ error: '任务不存在或无权限删除' });
     }
 
-    // 软删除任务（设置为非活跃状态）
     db.run(
       'UPDATE daily_tasks SET is_active = false WHERE id = $1',
       [taskId],
       function(err) {
         if (err) {
+          console.error('删除任务失败:', err);
           return res.status(500).json({ error: '删除任务失败' });
         }
         res.json({ message: '任务删除成功' });
@@ -348,6 +355,7 @@ app.post('/api/checkin', authenticateToken, (req, res) => {
 
   db.get('SELECT * FROM daily_tasks WHERE id = $1 AND is_active = true', [task_id], (err, task) => {
     if (err) {
+      console.error('查询每日任务失败:', err);
       return res.status(500).json({ error: '服务器错误' });
     }
     
@@ -357,12 +365,12 @@ app.post('/api/checkin', authenticateToken, (req, res) => {
 
     const today = new Date().toISOString().split('T')[0];
     
-    // 检查今天是否已经打卡
     db.get(
       'SELECT * FROM daily_checkins WHERE task_id = $1 AND user_id = $2 AND check_date = $3',
       [task_id, req.user.id, today],
       (err, existingCheckin) => {
         if (err) {
+          console.error('查询今日打卡失败:', err);
           return res.status(500).json({ error: '服务器错误' });
         }
 
@@ -370,19 +378,23 @@ app.post('/api/checkin', authenticateToken, (req, res) => {
           return res.status(400).json({ error: '今天已经打卡了' });
         }
 
-        // 执行打卡
         db.run(
           'INSERT INTO daily_checkins (task_id, user_id, check_date, notes) VALUES ($1, $2, $3, $4)',
           [task_id, req.user.id, today, notes],
           function(err) {
             if (err) {
+              console.error('插入打卡记录失败:', err);
               return res.status(500).json({ error: '打卡失败' });
             }
 
-            // 自动获得积分
             db.run(
               'INSERT INTO points_history (user_id, points, type, description) VALUES ($1, $2, $3, $4)',
-              [req.user.id, task.points, 'earned', `今日完成任务: ${task.title}`]
+              [req.user.id, task.points, 'earned', `今日完成任务: ${task.title}`],
+              function(err) {
+                if (err) {
+                  console.error('插入积分历史失败:', err);
+                }
+              }
             );
 
             res.json({ message: '今日打卡成功！' });
@@ -394,22 +406,27 @@ app.post('/api/checkin', authenticateToken, (req, res) => {
 });
 
 // 获取打卡记录
-app.get('/api/checkins', authenticateToken, (req, res) => {
-  const query = `
-    SELECT c.*, t.title as task_title, t.points, u.username as user_name
-    FROM checkins c
-    JOIN tasks t ON c.task_id = t.id
-    JOIN users u ON c.user_id = u.id
-    ORDER BY c.checked_at DESC
-  `;
+app.get('/api/checkins', authenticateToken, async (req, res) => {
+  try {
+    const query = `
+      SELECT dc.*, dt.title as task_title, dt.points, u.username as user_name
+      FROM daily_checkins dc
+      JOIN daily_tasks dt ON dc.task_id = dt.id
+      JOIN users u ON dc.user_id = u.id
+      ORDER BY dc.checked_at DESC
+    `;
 
-  db.all(query, [], (err, checkins) => {
-    if (err) {
-      console.error('获取打卡记录失败:', err);
-      return res.status(500).json({ error: '获取打卡记录失败' });
-    }
-    res.json(checkins);
-  });
+    db.all(query, [], (err, checkins) => {
+      if (err) {
+        console.error('获取打卡记录失败:', err);
+        return res.status(500).json({ error: '获取打卡记录失败' });
+      }
+      res.json(checkins);
+    });
+  } catch (err) {
+    console.error('Error in /api/checkins:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 获取积分历史记录
@@ -626,6 +643,12 @@ app.get('/api/stats', authenticateToken, (req, res) => {
   });
 });
 
+// 在所有路由后添加全局错误处理中间件
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(500).json({ error: err.message || 'Internal Server Error' });
+});
+
 app.listen(PORT, () => {
-  console.log(`服务器运行在端口 ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 }); 
