@@ -68,6 +68,7 @@ function Rewards() {
   };
 
   const handleEditReward = (reward) => {
+    console.log('handleEditReward 被调用', reward);
     setSelectedReward(reward);
     setFormData({
       title: reward.title,
@@ -126,6 +127,8 @@ function Rewards() {
     );
   }
 
+  console.log('showEditModal', showEditModal, 'selectedReward', selectedReward);
+
   return (
     <div className="space-y-6">
       {/* 页面标题和积分余额 */}
@@ -179,7 +182,10 @@ function Rewards() {
               {String(reward.created_by) === String(user.id) && (
                 <div className="flex space-x-2">
                   <button 
-                    onClick={() => handleEditReward(reward)}
+                    onClick={() => { 
+                      console.log('点击编辑奖励', reward); 
+                      handleEditReward(reward); 
+                    }}
                     className="text-gray-400 hover:text-gray-600"
                   >
                     <Edit className="h-4 w-4" />
