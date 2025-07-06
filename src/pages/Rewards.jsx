@@ -176,7 +176,7 @@ function Rewards() {
                   </div>
                 )}
               </div>
-              {reward.created_by === user.id && (
+              {String(reward.created_by) === String(user.id) && (
                 <div className="flex space-x-2">
                   <button 
                     onClick={() => handleEditReward(reward)}
