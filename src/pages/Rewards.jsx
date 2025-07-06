@@ -180,23 +180,21 @@ function Rewards() {
                 )}
               </div>
               {String(reward.created_by) === String(user.id) && (
-                <div className="flex space-x-2">
+                <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: '8px', zIndex: 1000 }}>
                   <button 
-                    style={{ zIndex: 1000, position: 'relative' }}
+                    style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', borderRadius: '50%', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', border: 'none', cursor: 'pointer' }}
                     onClick={() => { 
                       console.log('点击编辑奖励', reward); 
                       handleEditReward(reward); 
                     }}
-                    className="text-gray-400 hover:text-gray-600"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-4 w-4" style={{ pointerEvents: 'none' }} />
                   </button>
                   <button 
-                    style={{ zIndex: 1000, position: 'relative' }}
+                    style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', borderRadius: '50%', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', border: 'none', cursor: 'pointer' }}
                     onClick={() => handleDeleteReward(reward.id)}
-                    className="text-red-400 hover:text-red-600"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" style={{ pointerEvents: 'none' }} />
                   </button>
                 </div>
               )}
