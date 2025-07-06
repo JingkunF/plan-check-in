@@ -8,9 +8,12 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// 中间件
+const allowedOrigins = [
+  'https://plan-check-in-oiga.vercel.app',
+  'http://localhost:5173'
+];
 app.use(cors({
-  origin: 'https://你的前端域名', // 例如 https://plan-check-in-frontend.vercel.app
+  origin: 'https://plan-check-in-oiga.vercel.app',
   credentials: true
 }));
 app.use(express.json());
