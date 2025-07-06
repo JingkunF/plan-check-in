@@ -182,6 +182,7 @@ function Rewards() {
               {String(reward.created_by) === String(user.id) && (
                 <div className="flex space-x-2">
                   <button 
+                    style={{ zIndex: 1000, position: 'relative' }}
                     onClick={() => { 
                       console.log('点击编辑奖励', reward); 
                       handleEditReward(reward); 
@@ -191,6 +192,7 @@ function Rewards() {
                     <Edit className="h-4 w-4" />
                   </button>
                   <button 
+                    style={{ zIndex: 1000, position: 'relative' }}
                     onClick={() => handleDeleteReward(reward.id)}
                     className="text-red-400 hover:text-red-600"
                   >
