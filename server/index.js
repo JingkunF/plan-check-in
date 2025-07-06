@@ -405,6 +405,7 @@ app.get('/api/checkins', authenticateToken, (req, res) => {
 
   db.all(query, [], (err, checkins) => {
     if (err) {
+      console.error('获取打卡记录失败:', err);
       return res.status(500).json({ error: '获取打卡记录失败' });
     }
     res.json(checkins);
