@@ -10,7 +10,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -18,14 +18,30 @@ function Login() {
     setLoading(true);
     setError('');
 
+    // 先尝试登录
     const result = await login(username, password);
-    
     if (result.success) {
       navigate('/');
+      setLoading(false);
+      return;
+    }
+    // 登录失败，尝试自动注册
+    if (result.error && (result.error.includes('用户名') || result.error.includes('401'))) {
+      const regResult = await register({ username, password });
+      if (regResult.success) {
+        // 注册成功后自动登录
+        const loginResult = await login(username, password);
+        if (loginResult.success) {
+          navigate('/');
+        } else {
+          setError(loginResult.error);
+        }
+      } else {
+        setError(regResult.error);
+      }
     } else {
       setError(result.error);
     }
-    
     setLoading(false);
   };
 
@@ -101,17 +117,8 @@ function Login() {
               disabled={loading}
               className="btn-primary w-full flex justify-center"
             >
-              {loading ? '登录中...' : '登录'}
+              {loading ? '处理中...' : '注册/登录'}
             </button>
-          </div>
-
-          <div className="text-center">
-            <Link
-              to="/register"
-              className="text-primary-600 hover:text-primary-500 text-sm"
-            >
-              还没有账号？立即注册
-            </Link>
           </div>
         </form>
       </div>
