@@ -12,102 +12,123 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 app.use(cors());
 app.use(express.json());
 
-// 数据库初始化
-const db = new sqlite3.Database('checki-in.db');
+// 数据库配置
+let db;
+if (process.env.DATABASE_URL) {
+  // 使用PostgreSQL（生产环境）
+  const { Pool } = require('pg');
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+  
+  // 创建PostgreSQL适配器
+  db = {
+    run: (sql, params, callback) => {
+      pool.query(sql, params, (err, result) => {
+        if (callback) callback(err, { lastID: result?.rows?.[0]?.id });
+      });
+    },
+    get: (sql, params, callback) => {
+      pool.query(sql, params, (err, result) => {
+        if (callback) callback(err, result?.rows?.[0]);
+      });
+    },
+    all: (sql, params, callback) => {
+      pool.query(sql, params, (err, result) => {
+        if (callback) callback(err, result?.rows || []);
+      });
+    }
+  };
+} else {
+  // 使用SQLite（开发环境）
+  db = new sqlite3.Database('checki-in.db');
+}
 
 // 创建表
-db.serialize(() => {
-  // 用户表
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+const createTables = async () => {
+  const tables = [
+    // 用户表
+    `CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    
+    // 每日任务表
+    `CREATE TABLE IF NOT EXISTS daily_tasks (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      points INTEGER DEFAULT 10,
+      category TEXT,
+      created_by INTEGER NOT NULL,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES users (id)
+    )`,
+    
+    // 每日打卡记录表
+    `CREATE TABLE IF NOT EXISTS daily_checkins (
+      id SERIAL PRIMARY KEY,
+      task_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      check_date DATE NOT NULL,
+      checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      notes TEXT,
+      FOREIGN KEY (task_id) REFERENCES daily_tasks (id),
+      FOREIGN KEY (user_id) REFERENCES users (id),
+      UNIQUE(task_id, user_id, check_date)
+    )`,
+    
+    // 积分记录表
+    `CREATE TABLE IF NOT EXISTS points_history (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      points INTEGER NOT NULL,
+      type TEXT NOT NULL CHECK(type IN ('earned', 'spent')),
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users (id)
+    )`,
+    
+    // 奖励表
+    `CREATE TABLE IF NOT EXISTS rewards (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      points_required INTEGER NOT NULL,
+      created_by INTEGER NOT NULL,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES users (id)
+    )`,
+    
+    // 奖励兑换记录表
+    `CREATE TABLE IF NOT EXISTS reward_redemptions (
+      id SERIAL PRIMARY KEY,
+      reward_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      redeemed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      points_spent INTEGER NOT NULL,
+      status TEXT DEFAULT 'completed',
+      FOREIGN KEY (reward_id) REFERENCES rewards (id),
+      FOREIGN KEY (user_id) REFERENCES users (id)
+    )`
+  ];
 
-  // 每日任务表
-  db.run(`CREATE TABLE IF NOT EXISTS daily_tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    description TEXT,
-    points INTEGER DEFAULT 10,
-    category TEXT,
-    created_by INTEGER NOT NULL,
-    is_active BOOLEAN DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users (id)
-  )`);
+  for (const table of tables) {
+    await new Promise((resolve, reject) => {
+      db.run(table, [], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+};
 
-  // 每日打卡记录表
-  db.run(`CREATE TABLE IF NOT EXISTS daily_checkins (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    check_date DATE NOT NULL,
-    checked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    notes TEXT,
-    FOREIGN KEY (task_id) REFERENCES daily_tasks (id),
-    FOREIGN KEY (user_id) REFERENCES users (id),
-    UNIQUE(task_id, user_id, check_date)
-  )`);
-
-  // 保留原有表结构用于兼容
-  db.run(`CREATE TABLE IF NOT EXISTS tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    description TEXT,
-    points INTEGER DEFAULT 10,
-    category TEXT,
-    created_by INTEGER NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users (id)
-  )`);
-
-  db.run(`CREATE TABLE IF NOT EXISTS checkins (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    checked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    notes TEXT,
-    FOREIGN KEY (task_id) REFERENCES tasks (id),
-    FOREIGN KEY (user_id) REFERENCES users (id)
-  )`);
-
-  // 积分记录表
-  db.run(`CREATE TABLE IF NOT EXISTS points_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    points INTEGER NOT NULL,
-    type TEXT NOT NULL CHECK(type IN ('earned', 'spent')),
-    description TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users (id)
-  )`);
-
-  // 奖励表
-  db.run(`CREATE TABLE IF NOT EXISTS rewards (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    description TEXT,
-    points_required INTEGER NOT NULL,
-    created_by INTEGER NOT NULL,
-    is_active BOOLEAN DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users (id)
-  )`);
-
-  // 奖励兑换记录表
-  db.run(`CREATE TABLE IF NOT EXISTS reward_redemptions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    reward_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    points_spent INTEGER NOT NULL,
-    status TEXT DEFAULT 'completed',
-    FOREIGN KEY (reward_id) REFERENCES rewards (id),
-    FOREIGN KEY (user_id) REFERENCES users (id)
-  )`);
-});
+createTables().catch(console.error);
 
 // JWT验证中间件
 const authenticateToken = (req, res, next) => {
