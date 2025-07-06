@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   // 设置axios默认配置
-  axios.defaults.baseURL = '/api';
+  axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
   // 从localStorage获取token
   const getToken = () => localStorage.getItem('token');
