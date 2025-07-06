@@ -83,11 +83,11 @@ function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       const [statsRes, tasksRes, rewardsRes, pointsRes, checkinsRes] = await Promise.all([
-        axios.get('/stats'),
-        axios.get('/tasks'),
-        axios.get('/rewards'),
-        axios.get('/points'),
-        axios.get('/checkins')
+        axios.get('/api/stats'),
+        axios.get('/api/tasks'),
+        axios.get('/api/rewards'),
+        axios.get('/api/points'),
+        axios.get('/api/checkins')
       ]);
 
       setStats(statsRes.data);
@@ -104,7 +104,7 @@ function Dashboard() {
 
   const fetchPointsBalance = async () => {
     try {
-      const response = await axios.get('/points/balance');
+      const response = await axios.get('/api/points/balance');
       setPointsBalance(response.data.balance);
     } catch (error) {
       console.error('获取积分余额失败:', error);
@@ -115,7 +115,7 @@ function Dashboard() {
   const handleCreateTask = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/tasks', taskFormData);
+      await axios.post('/api/tasks', taskFormData);
       setShowCreateTaskModal(false);
       setTaskFormData({
         title: '',
@@ -132,7 +132,7 @@ function Dashboard() {
   const handleCheckin = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/checkin', {
+      await axios.post('/api/checkin', {
         task_id: selectedTask.id,
         notes: checkinNotes
       });
@@ -160,7 +160,7 @@ function Dashboard() {
   const handleUpdateTask = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`/tasks/${selectedTask.id}`, taskFormData);
+      await axios.put(`/api/tasks/${selectedTask.id}`, taskFormData);
       setShowEditTaskModal(false);
       setSelectedTask(null);
       setTaskFormData({
@@ -178,7 +178,7 @@ function Dashboard() {
   const handleDeleteTask = async (taskId) => {
     if (window.confirm('确定要删除这个任务吗？')) {
       try {
-        await axios.delete(`/tasks/${taskId}`);
+        await axios.delete(`/api/tasks/${taskId}`);
         fetchDashboardData();
       } catch (error) {
         console.error('删除任务失败:', error);
@@ -190,7 +190,7 @@ function Dashboard() {
   const handleCreateReward = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/rewards', rewardFormData);
+      await axios.post('/api/rewards', rewardFormData);
       setShowCreateRewardModal(false);
       setRewardFormData({
         title: '',
@@ -207,7 +207,7 @@ function Dashboard() {
   const handleRedeem = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`/rewards/${selectedReward.id}/redeem`);
+      await axios.post(`/api/rewards/${selectedReward.id}/redeem`);
       setShowRedeemModal(false);
       setSelectedReward(null);
       fetchDashboardData();
@@ -220,7 +220,7 @@ function Dashboard() {
   const handleDeleteReward = async (rewardId) => {
     if (window.confirm('确定要删除这个奖励吗？')) {
       try {
-        await axios.delete(`/rewards/${rewardId}`);
+        await axios.delete(`/api/rewards/${rewardId}`);
         fetchDashboardData();
       } catch (error) {
         console.error('删除奖励失败:', error);

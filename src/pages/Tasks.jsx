@@ -34,7 +34,7 @@ function Tasks() {
 
   const fetchTasks = async () => {
     try {
-      const response = await axios.get('/tasks');
+      const response = await axios.get('/api/tasks');
       setTasks(response.data);
     } catch (error) {
       console.error('获取任务失败:', error);
@@ -48,7 +48,7 @@ function Tasks() {
   const handleCreateTask = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/tasks', formData);
+      await axios.post('/api/tasks', formData);
       setShowCreateModal(false);
       setFormData({
         title: '',
@@ -65,7 +65,7 @@ function Tasks() {
   const handleCheckin = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/checkin', {
+      await axios.post('/api/checkin', {
         task_id: selectedTask.id,
         notes: checkinNotes
       });
@@ -81,7 +81,7 @@ function Tasks() {
   const handleDeleteTask = async (taskId) => {
     if (window.confirm('确定要删除这个任务吗？')) {
       try {
-        await axios.delete(`/tasks/${taskId}`);
+        await axios.delete(`/api/tasks/${taskId}`);
         fetchTasks();
       } catch (error) {
         console.error('删除任务失败:', error);

@@ -26,9 +26,9 @@ function Stats() {
   const fetchStatsData = async () => {
     try {
       const [statsRes, pointsRes, checkinsRes] = await Promise.all([
-        axios.get('/stats'),
-        axios.get('/points'),
-        axios.get('/checkins')
+        axios.get('/api/stats'),
+        axios.get('/api/points'),
+        axios.get('/api/checkins')
       ]);
 
       setStats(statsRes.data);

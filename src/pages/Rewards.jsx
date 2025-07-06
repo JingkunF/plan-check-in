@@ -32,7 +32,7 @@ function Rewards() {
 
   const fetchRewards = async () => {
     try {
-      const response = await axios.get('/rewards');
+      const response = await axios.get('/api/rewards');
       setRewards(response.data);
     } catch (error) {
       console.error('获取奖励失败:', error);
@@ -41,11 +41,9 @@ function Rewards() {
     }
   };
 
-
-
   const fetchPointsBalance = async () => {
     try {
-      const response = await axios.get('/points/balance');
+      const response = await axios.get('/api/points/balance');
       setPointsBalance(response.data.balance);
     } catch (error) {
       console.error('获取积分余额失败:', error);
@@ -55,7 +53,7 @@ function Rewards() {
   const handleCreateReward = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/rewards', formData);
+      await axios.post('/api/rewards', formData);
       setShowCreateModal(false);
       setFormData({
         title: '',
@@ -71,7 +69,7 @@ function Rewards() {
   const handleRedeem = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`/rewards/${selectedReward.id}/redeem`);
+      await axios.post(`/api/rewards/${selectedReward.id}/redeem`);
       setShowRedeemModal(false);
       setSelectedReward(null);
       fetchRewards();
@@ -84,7 +82,7 @@ function Rewards() {
   const handleDeleteReward = async (rewardId) => {
     if (window.confirm('确定要删除这个奖励吗？')) {
       try {
-        await axios.delete(`/rewards/${rewardId}`);
+        await axios.delete(`/api/rewards/${rewardId}`);
         fetchRewards();
       } catch (error) {
         console.error('删除奖励失败:', error);
