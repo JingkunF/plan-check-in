@@ -9,13 +9,25 @@ const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 const allowedOrigins = [
+  'https://www.jihuadaka.top',
   'https://plan-check-in-oiga.vercel.app',
   'http://localhost:5173'
 ];
+
 app.use(cors({
-  origin: 'https://plan-check-in-oiga.vercel.app',
-  credentials: true
+  origin: function(origin, callback) {
+    // 允许无 Origin（如 curl/postman）或在白名单内
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 
 // 数据库配置
