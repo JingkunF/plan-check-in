@@ -658,6 +658,11 @@ app.get('/api/stats', authenticateToken, (req, res) => {
   });
 });
 
+// 获取健康检查状态
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // 在所有路由后添加全局错误处理中间件
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err);
