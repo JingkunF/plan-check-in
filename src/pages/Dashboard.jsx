@@ -67,6 +67,7 @@ function Dashboard() {
 
   // 奖励管理状态
   const [showCreateRewardModal, setShowCreateRewardModal] = useState(false);
+  const [showEditRewardModal, setShowEditRewardModal] = useState(false);
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [selectedReward, setSelectedReward] = useState(null);
   const [rewardFormData, setRewardFormData] = useState({
@@ -83,6 +84,11 @@ function Dashboard() {
   }, []);
 
   const fetchDashboardData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       const [statsRes, tasksRes, rewardsRes, pointsRes, checkinsRes] = await Promise.all([
         axios.get('/api/stats'),
@@ -105,6 +111,8 @@ function Dashboard() {
   };
 
   const fetchPointsBalance = async () => {
+    if (!user) return;
+    
     try {
       const response = await axios.get('/api/points/balance');
       setPointsBalance(response.data.balance);
@@ -116,6 +124,11 @@ function Dashboard() {
   // 任务管理函数
   const handleCreateTask = async (e) => {
     e.preventDefault();
+    if (!user) {
+      alert('请先登录后再创建任务');
+      return;
+    }
+    
     try {
       await axios.post('/api/tasks', taskFormData);
       setShowCreateTaskModal(false);
@@ -133,6 +146,11 @@ function Dashboard() {
 
   const handleCheckin = async (e) => {
     e.preventDefault();
+    if (!user) {
+      alert('请先登录后再进行打卡');
+      return;
+    }
+    
     try {
       await axios.post('/api/checkin', {
         task_id: selectedTask.id,
@@ -216,6 +234,33 @@ function Dashboard() {
       fetchPointsBalance();
     } catch (error) {
       console.error('兑换失败:', error);
+    }
+  };
+
+  const handleEditReward = (reward) => {
+    setSelectedReward(reward);
+    setRewardFormData({
+      title: reward.title,
+      description: reward.description || '',
+      points_required: reward.points_required
+    });
+    setShowEditRewardModal(true);
+  };
+
+  const handleUpdateReward = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.put(`/api/rewards/${selectedReward.id}`, rewardFormData);
+      setShowEditRewardModal(false);
+      setSelectedReward(null);
+      setRewardFormData({
+        title: '',
+        description: '',
+        points_required: 50
+      });
+      fetchDashboardData();
+    } catch (error) {
+      console.error('更新奖励失败:', error);
     }
   };
 
@@ -333,6 +378,37 @@ function Dashboard() {
     }
   };
 
+  // 颜色池 - 10种独特的颜色
+  const colorPalette = [
+    { bg: 'bg-blue-100', text: 'text-blue-600', border: 'border-blue-500' },
+    { bg: 'bg-green-100', text: 'text-green-600', border: 'border-green-500' },
+    { bg: 'bg-yellow-100', text: 'text-yellow-600', border: 'border-yellow-500' },
+    { bg: 'bg-purple-100', text: 'text-purple-600', border: 'border-purple-500' },
+    { bg: 'bg-pink-100', text: 'text-pink-600', border: 'border-pink-500' },
+    { bg: 'bg-indigo-100', text: 'text-indigo-600', border: 'border-indigo-500' },
+    { bg: 'bg-emerald-100', text: 'text-emerald-600', border: 'border-emerald-500' },
+    { bg: 'bg-orange-100', text: 'text-orange-600', border: 'border-orange-500' },
+    { bg: 'bg-red-100', text: 'text-red-600', border: 'border-red-500' },
+    { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-500' }
+  ];
+
+  // 为分类分配颜色 - 使用简单的哈希算法
+  const getCategoryColor = (category) => {
+    if (!category) return colorPalette[9]; // 默认使用最后一个颜色
+    
+    // 简单的字符串哈希算法
+    let hash = 0;
+    for (let i = 0; i < category.length; i++) {
+      const char = category.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // 转换为32位整数
+    }
+    
+    // 使用哈希值选择颜色
+    const colorIndex = Math.abs(hash) % colorPalette.length;
+    return colorPalette[colorIndex];
+  };
+
   // 获取任务分类统计
   const getTaskCategories = () => {
     const categories = {};
@@ -344,40 +420,20 @@ function Dashboard() {
       categories[category]++;
     });
 
-    const categoryColors = {
-      '学习': 'bg-primary-100 text-primary-600',
-      '运动': 'bg-success-100 text-success-600',
-      '阅读': 'bg-warning-100 text-warning-600',
-      '兴趣': 'bg-purple-100 text-purple-600',
-      '家务': 'bg-gray-100 text-gray-600',
-      '其他': 'bg-gray-100 text-gray-600'
-    };
-
-    return Object.entries(categories).map(([name, count]) => ({
-      name,
-      count,
-      color: categoryColors[name] || categoryColors['其他']
-    }));
-  };
-
-  // 获取任务难度统计
-  const getTaskDifficulties = () => {
-    const difficulties = {};
-    tasks.forEach(task => {
-      const difficulty = getDifficultyByPoints(task.points);
-      if (!difficulties[difficulty]) {
-        difficulties[difficulty] = 0;
-      }
-      difficulties[difficulty]++;
+    return Object.entries(categories).map(([name, count]) => {
+      const color = getCategoryColor(name);
+      return {
+        name,
+        count,
+        color: `${color.bg} ${color.text}`
+      };
     });
-    return difficulties;
   };
 
-  // 根据积分判断难度
-  const getDifficultyByPoints = (points) => {
-    if (points <= 5) return '简单';
-    if (points <= 10) return '中等';
-    return '困难';
+  // 获取任务分类的边框颜色（用于任务前的线条）
+  const getCategoryBorderColor = (category) => {
+    const color = getCategoryColor(category);
+    return color.border;
   };
 
   if (loading) {
@@ -388,8 +444,54 @@ function Dashboard() {
     );
   }
 
+  // 未登录用户的演示数据
+  const demoTasks = [
+    { id: 1, title: '学习React', description: '完成React基础教程', points: 10, category: '学习', checked_today: false, created_at: new Date() },
+    { id: 2, title: '跑步30分钟', description: '在公园慢跑', points: 15, category: '运动', checked_today: true, created_at: new Date() },
+    { id: 3, title: '阅读《原子习惯》', description: '阅读第5-6章', points: 8, category: '阅读', checked_today: false, created_at: new Date() }
+  ];
+
+  const demoStats = {
+    total_tasks: 3,
+    today_checkins: 1,
+    total_earned: 23,
+    total_spent: 0,
+    balance: 23,
+    completion_rate: 33.3,
+    total_checkins: 1
+  };
+
+  const displayTasks = user ? tasks : demoTasks;
+  const displayStats = user ? stats : demoStats;
+  const displayPointsBalance = user ? pointsBalance : 23;
+
   return (
     <div className="space-y-6">
+      
+      {/* 未登录提示 */}
+      {!user && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                <Sparkles className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-blue-900">欢迎体验打卡工具！</h3>
+                <p className="text-blue-700">当前为演示模式，登录后可以创建和管理您的个人任务</p>
+              </div>
+            </div>
+            <div className="flex space-x-3">
+              <a href="/login" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                立即登录
+              </a>
+              <a href="/register" className="bg-white hover:bg-gray-50 text-blue-600 border border-blue-600 px-4 py-2 rounded-lg transition-colors">
+                免费注册
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* 合并的计划进度和今日任务区域 */}
       <div className="bg-gradient-to-r from-pink-400 to-purple-500 rounded-3xl p-8 text-white shadow-cute">
@@ -397,14 +499,14 @@ function Dashboard() {
           <div className="flex items-center justify-center mb-2">
             <Heart className="h-8 w-8 mr-3" />
             <h1 className="text-4xl font-bold">
-              {user?.username}，加油！
+              {user?.username || '访客'}，加油！
             </h1>
           </div>
           <p className="text-pink-100 text-lg mb-4">
             离目标又近了一步！
           </p>
           <div className="flex justify-center mb-4">
-            <div className="relative inline-block cursor-pointer" onClick={() => setShowPlanModal(true)}>
+            <div className="relative inline-block cursor-pointer" onClick={() => user && setShowPlanModal(true)}>
               <span className="inline-block bg-white/20 text-white font-medium px-6 py-3 rounded-full shadow-lg hover:bg-white/30 transition-all duration-300">
                 今日是计划第 <span className="font-bold">{calculatePlanDays()}</span> 天
               </span>
@@ -426,7 +528,7 @@ function Dashboard() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">今日任务数</p>
               <p className="text-2xl font-bold text-gray-900">
-                {tasks.length}
+                {displayTasks.length}
               </p>
             </div>
           </div>
@@ -440,7 +542,7 @@ function Dashboard() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">今日完成率</p>
               <p className="text-2xl font-bold text-gray-900">
-                {tasks.length > 0 ? Math.round((tasks.filter(task => task.checked_today).length / tasks.length) * 100) : 0}%
+                {displayTasks.length > 0 ? Math.round((displayTasks.filter(task => task.checked_today).length / displayTasks.length) * 100) : 0}%
               </p>
             </div>
           </div>
@@ -454,7 +556,7 @@ function Dashboard() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">积分余额</p>
               <p className="text-2xl font-bold text-gray-900">
-                {pointsBalance}
+                {displayPointsBalance}
               </p>
             </div>
           </div>
@@ -468,14 +570,12 @@ function Dashboard() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">今日打卡</p>
               <p className="text-2xl font-bold text-gray-900">
-                {tasks.filter(task => task.checked_today).length}
+                {displayTasks.filter(task => task.checked_today).length}
               </p>
             </div>
           </div>
         </div>
       </div>
-
-
 
       {/* 今日任务区域 */}
       <section className="mb-12">
@@ -485,7 +585,7 @@ function Dashboard() {
           </h3>
           <div className="mt-2 md:mt-0">
             <button 
-              onClick={() => setShowCreateTaskModal(true)}
+              onClick={() => user ? setShowCreateTaskModal(true) : alert('请先登录后再创建任务')}
               className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
             >
               <i className="fas fa-plus mr-2"></i> 添加任务
@@ -493,131 +593,112 @@ function Dashboard() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 任务分类标签 */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h4 className="text-lg font-bold mb-4">任务分类</h4>
-            <div className="flex flex-wrap gap-2 mb-4">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          {/* 任务分类标签 - 直接显示在任务列表上方 */}
+          {displayTasks.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
               {getTaskCategories().map((category) => (
-                <span key={category.name} className={`${category.color} px-3 py-1 rounded-full text-sm font-medium cursor-pointer`}>
+                <span key={category.name} className={`${category.color} px-3 py-1 rounded-full text-sm font-medium`}>
                   {category.name} <span className="ml-1 bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full">{category.count}</span>
                 </span>
               ))}
             </div>
-            
-            <div className="mt-6">
-              <h4 className="text-lg font-bold mb-4">任务难度</h4>
-              <div className="flex items-center space-x-4">
-                {Object.entries(getTaskDifficulties()).map(([difficulty, count]) => {
-                  const difficultyConfig = {
-                    '简单': { icon: 'smile', color: 'green', points: '≤5分' },
-                    '中等': { icon: 'meh', color: 'blue', points: '6-10分' },
-                    '困难': { icon: 'frown', color: 'red', points: '≥11分' }
-                  };
-                  const config = difficultyConfig[difficulty];
-                  return (
-                    <div key={difficulty} className="flex flex-col items-center">
-                      <div className={`bg-${config.color}-100 p-3 rounded-full`}>
-                        <i className={`fas fa-${config.icon} text-${config.color}-500 text-xl`}></i>
-                      </div>
-                      <span className="text-sm mt-2 text-gray-600">{difficulty}</span>
-                      <span className="text-xs mt-1 text-gray-500">{config.points}</span>
-                      <span className="text-xs mt-1 text-gray-400">({count}个)</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          )}
           
           {/* 任务列表 */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-bold">任务列表</h4>
-              <span className="bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-sm">{tasks.length}项任务</span>
-            </div>
-            
-            <div className="space-y-4">
-              {tasks
-                .sort((a, b) => {
-                  // 未完成的任务排在前面，已完成的任务排在后面
-                  if (a.checked_today !== b.checked_today) {
-                    return a.checked_today ? 1 : -1;
-                  }
-                  // 同状态下按创建时间排序
-                  return new Date(b.created_at) - new Date(a.created_at);
-                })
-                .map((task) => (
-                <div key={task.id} className={`task-item border-l-4 ${task.checked_today ? 'border-green-500 bg-green-50' : 'border-primary-600'} p-4 rounded-r-lg hover:bg-gray-50 transition-colors`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex flex-1">
-                      <div className="mr-3 mt-0.5">
-                        <input 
-                          type="checkbox" 
-                          className="w-5 h-5 accent-primary-600 rounded"
-                          checked={task.checked_today}
-                          onChange={() => {
-                            if (!task.checked_today) {
-                              setSelectedTask(task);
-                              setShowCheckinModal(true);
+          <div className="flex justify-between items-center mb-4">
+            <span className="bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-sm">{displayTasks.length}项任务</span>
+          </div>
+          
+          <div className="space-y-4">
+            {displayTasks
+              .sort((a, b) => {
+                // 未完成的任务排在前面，已完成的任务排在后面
+                if (a.checked_today !== b.checked_today) {
+                  return a.checked_today ? 1 : -1;
+                }
+                // 同状态下按创建时间排序
+                return new Date(b.created_at) - new Date(a.created_at);
+              })
+              .map((task) => {
+                console.log('user.id:', user && user.id, 'task.created_by:', task.created_by, task);
+                return (
+              <div key={task.id} className={`task-item border-l-4 ${task.checked_today ? 'bg-green-50' : ''} ${task.checked_today ? 'border-green-500' : getCategoryBorderColor(task.category || '其他')} p-4 rounded-r-lg hover:bg-gray-50 transition-colors`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-1">
+                    <div className="mr-3 mt-0.5">
+                      <input 
+                        type="checkbox" 
+                        className="w-5 h-5 accent-primary-600 rounded"
+                        checked={task.checked_today}
+                        onChange={() => {
+                          if (!task.checked_today) {
+                            if (!user) {
+                              alert('请先登录后再进行打卡');
+                              return;
                             }
-                          }}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <h5 className={`font-medium ${task.checked_today ? 'line-through opacity-70' : ''}`}>{task.title}</h5>
-                        {task.description && (
-                          <p className={`text-sm text-gray-600 mt-1 ${task.checked_today ? 'line-through opacity-70' : ''}`}>{task.description}</p>
-                        )}
-                        <div className="flex items-center mt-1 text-sm text-gray-500">
-                          <span className="bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full text-xs mr-2">
-                            {task.category || '学习'}
-                          </span>
-                          <span><i className="fas fa-gem mr-1"></i> {getDifficultyByPoints(task.points)}</span>
-                        </div>
-                      </div>
+                            setSelectedTask(task);
+                            setShowCheckinModal(true);
+                          }
+                        }}
+                      />
                     </div>
-                    <div className="flex flex-col items-end ml-4">
-                      <div className="flex items-center space-x-2 mb-2">
-                        {task.created_by === user.id && (
-                          <>
-                            <button 
-                              onClick={() => handleEditTask(task)}
-                              className="text-blue-500 hover:text-blue-700 transition-colors"
-                              title="编辑任务"
-                            >
-                              <i className="fas fa-edit text-sm"></i>
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteTask(task.id)}
-                              className="text-red-500 hover:text-red-700 transition-colors"
-                              title="删除任务"
-                            >
-                              <i className="fas fa-trash text-sm"></i>
-                            </button>
-                          </>
-                        )}
+                    <div className="flex-1">
+                      <h5 className={`font-medium ${task.checked_today ? 'line-through opacity-70' : ''}`}>{task.title}</h5>
+                      {task.description && (
+                        <p className={`text-sm text-gray-600 mt-1 ${task.checked_today ? 'line-through opacity-70' : ''}`}>{task.description}</p>
+                      )}
+                      <div className="flex items-center mt-1 text-sm text-gray-500">
+                        <span className={`${getCategoryColor(task.category || '其他').bg} ${getCategoryColor(task.category || '其他').text} px-2 py-0.5 rounded-full text-xs mr-2`}>
+                          {task.category || '其他'}
+                        </span>
+                        <span><i className="fas fa-gem mr-1"></i> {task.points}积分</span>
                       </div>
-                      <span className="text-primary-600 font-bold">+{task.points}</span>
-                      <span className="text-xs text-gray-500">积分</span>
                     </div>
                   </div>
+                  <div className="flex flex-col items-end ml-4">
+                    <div className="flex items-center space-x-2 mb-2">
+                      {user && String(task.created_by) === String(user.id) && (
+                        <>
+                          <button 
+                            onClick={() => handleEditTask(task)}
+                            className="text-blue-500 hover:text-blue-700 transition-colors"
+                            title="编辑任务"
+                          >
+                            <i className="fas fa-edit text-sm"></i>
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="text-red-500 hover:text-red-700 transition-colors"
+                            title="删除任务"
+                          >
+                            <i className="fas fa-trash text-sm"></i>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    <span className="text-primary-600 font-bold">+{task.points}</span>
+                    <span className="text-xs text-gray-500">积分</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-            
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center">
-                <div>
-                  <span className="font-medium">今日可获得积分：</span>
-                  <span className="text-2xl font-bold text-primary-600">
-                    {tasks.reduce((sum, task) => sum + task.points, 0)}
-                  </span>
-                </div>
-                <button className="bg-accent-500 hover:bg-accent-600 text-white px-4 py-2 rounded-lg transition-colors">
-                  一键完成所有任务
-                </button>
               </div>
+            )})}
+          </div>
+          
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="flex justify-between items-center">
+              <div>
+                <span className="font-medium">今日可获得积分：</span>
+                <span className="text-2xl font-bold text-primary-600">
+                  {displayTasks.reduce((sum, task) => sum + task.points, 0)}
+                </span>
+              </div>
+              <button 
+                onClick={() => !user && alert('请先登录后再使用此功能')}
+                className="bg-accent-500 hover:bg-accent-600 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                一键完成所有任务
+              </button>
             </div>
           </div>
         </div>
@@ -671,9 +752,12 @@ function Dashboard() {
                     </div>
                   )}
                 </div>
-                {reward.created_by === user.id && (
+                {user && String(reward.created_by) === String(user.id) && (
                   <div className="flex space-x-2">
-                    <button className="text-gray-400 hover:text-gray-600">
+                    <button 
+                      onClick={() => handleEditReward(reward)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button 
@@ -1171,6 +1255,62 @@ function Dashboard() {
                 </button>
                 <button type="submit" className="btn-primary flex-1">
                   保存设置
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑奖励模态框 */}
+      {showEditRewardModal && selectedReward && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">编辑奖励</h2>
+            <form onSubmit={handleUpdateReward} className="space-y-4">
+              <div>
+                <label className="label">奖励标题</label>
+                <input
+                  type="text"
+                  required
+                  className="input"
+                  value={rewardFormData.title}
+                  onChange={(e) => setRewardFormData({...rewardFormData, title: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <label className="label">奖励描述</label>
+                <textarea
+                  className="input"
+                  rows="3"
+                  value={rewardFormData.description}
+                  onChange={(e) => setRewardFormData({...rewardFormData, description: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <label className="label">所需积分</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  className="input"
+                  value={rewardFormData.points_required}
+                  onChange={(e) => setRewardFormData({...rewardFormData, points_required: parseInt(e.target.value)})}
+                />
+              </div>
+              
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEditRewardModal(false)}
+                  className="btn-secondary flex-1"
+                >
+                  取消
+                </button>
+                <button type="submit" className="btn-primary flex-1">
+                  更新
                 </button>
               </div>
             </form>

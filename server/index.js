@@ -9,9 +9,11 @@ const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001',
   'https://www.jihuadaka.top',
-  'https://plan-check-in-oiga.vercel.app',
-  'http://localhost:5173'
+  'https://plan-check-in-oiga.vercel.app'
 ];
 
 app.use(cors({

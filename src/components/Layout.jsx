@@ -4,7 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   Home, 
   LogOut,
-  User
+  User,
+  LogIn,
+  UserPlus
 } from 'lucide-react';
 
 function Layout({ children }) {
@@ -14,7 +16,7 @@ function Layout({ children }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   return (
@@ -39,19 +41,40 @@ function Layout({ children }) {
               首页
             </Link>
             
-            {/* 用户信息和登出 */}
+            {/* 用户信息或登录注册按钮 */}
             <div className="flex items-center space-x-3">
-              <div className="flex items-center text-sm text-gray-700">
-                <User className="h-4 w-4 mr-1" />
-                {user?.username}
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md transition-colors"
-              >
-                <LogOut className="h-5 w-5 mr-2" />
-                登出
-              </button>
+              {user ? (
+                <>
+                  <div className="flex items-center text-sm text-gray-700">
+                    <User className="h-4 w-4 mr-1" />
+                    {user?.username}
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md transition-colors"
+                  >
+                    <LogOut className="h-5 w-5 mr-2" />
+                    登出
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md transition-colors"
+                  >
+                    <LogIn className="h-5 w-5 mr-2" />
+                    登录
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="flex items-center px-3 py-2 text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 rounded-md transition-colors"
+                  >
+                    <UserPlus className="h-5 w-5 mr-2" />
+                    注册
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
