@@ -150,6 +150,9 @@ const createTables = async () => {
 
 createTables().catch(console.error);
 
+// 启动时自动为 users.username 添加唯一索引（如果不存在）
+db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)');
+
 // JWT验证中间件
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -173,26 +176,32 @@ app.post('/api/register', async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    db.run(
-      'INSERT INTO users (username, password) VALUES ($1, $2)',
-      [username, hashedPassword],
-      function(err) {
-        if (err) {
-          console.error('注册时数据库错误:', err);
-          if (err.message && err.message.includes('UNIQUE')) {
-            return res.status(400).json({ error: '用户名已存在' });
-          }
-          return res.status(500).json({ error: '注册失败' });
-        }
-        
-        res.json({ 
-          message: '注册成功',
-          user_id: this.lastID 
-        });
+    // 先查找用户名是否已存在
+    db.get('SELECT id FROM users WHERE username = $1', [username], async (err, user) => {
+      if (err) {
+        console.error('注册时数据库查询错误:', err);
+        return res.status(500).json({ error: '服务器错误' });
       }
-    );
+      if (user) {
+        return res.status(400).json({ error: '用户名已存在' });
+      }
+      // 用户名未被注册，继续插入
+      const hashedPassword = await bcrypt.hash(password, 10);
+      db.run(
+        'INSERT INTO users (username, password) VALUES ($1, $2)',
+        [username, hashedPassword],
+        function(err) {
+          if (err) {
+            console.error('注册时数据库错误:', err);
+            return res.status(500).json({ error: '注册失败' });
+          }
+          res.json({ 
+            message: '注册成功',
+            user_id: this.lastID 
+          });
+        }
+      );
+    });
   } catch (error) {
     console.error('注册时异常:', error);
     res.status(500).json({ error: '服务器错误' });
