@@ -85,9 +85,10 @@ function Tasks() {
   const fetchTasks = async () => {
     try {
       const response = await axios.get('/api/tasks');
-      setTasks(response.data);
+      setTasks(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('获取任务失败:', error);
+      setTasks([]); // 保证 tasks 始终为数组
     } finally {
       setLoading(false);
     }
