@@ -281,10 +281,9 @@ app.post('/api/tasks', authenticateToken, (req, res) => {
   );
 });
 
-// 获取每日任务列表（包含今日打卡状态）
+// 获取每日任务列表（只返回当前用户创建的任务）
 app.get('/api/tasks', authenticateToken, (req, res) => {
   const today = new Date().toISOString().split('T')[0];
-  
   const query = `
     SELECT 
       dt.*, 
@@ -296,10 +295,9 @@ app.get('/api/tasks', authenticateToken, (req, res) => {
     LEFT JOIN daily_checkins dc ON dt.id = dc.task_id 
       AND dc.user_id = $1 
       AND dc.check_date = $2
-    WHERE dt.is_active = true
+    WHERE dt.is_active = true AND dt.created_by = $1
     ORDER BY dt.created_at DESC
   `;
-
   db.all(query, [req.user.id, today], (err, tasks) => {
     if (err) {
       console.error('获取每日任务失败:', err);
@@ -422,7 +420,7 @@ app.post('/api/checkin', authenticateToken, (req, res) => {
   });
 });
 
-// 获取打卡记录
+// 获取打卡记录（只返回当前用户的打卡记录）
 app.get('/api/checkins', authenticateToken, async (req, res) => {
   try {
     const query = `
@@ -430,10 +428,10 @@ app.get('/api/checkins', authenticateToken, async (req, res) => {
       FROM daily_checkins dc
       JOIN daily_tasks dt ON dc.task_id = dt.id
       JOIN users u ON dc.user_id = u.id
+      WHERE dc.user_id = $1
       ORDER BY dc.checked_at DESC
     `;
-
-    db.all(query, [], (err, checkins) => {
+    db.all(query, [req.user.id], (err, checkins) => {
       if (err) {
         console.error('获取打卡记录失败:', err);
         return res.status(500).json({ error: '获取打卡记录失败' });
@@ -502,17 +500,16 @@ app.post('/api/rewards', authenticateToken, (req, res) => {
   );
 });
 
-// 获取奖励列表
+// 获取奖励列表（只返回当前用户创建的奖励）
 app.get('/api/rewards', authenticateToken, (req, res) => {
   const query = `
     SELECT r.*, u.username as created_by_name 
     FROM rewards r
     JOIN users u ON r.created_by = u.id
-    WHERE r.is_active = true
+    WHERE r.is_active = true AND r.created_by = $1
     ORDER BY r.created_at DESC
   `;
-
-  db.all(query, [], (err, rewards) => {
+  db.all(query, [req.user.id], (err, rewards) => {
     if (err) {
       return res.status(500).json({ error: '获取奖励失败' });
     }
