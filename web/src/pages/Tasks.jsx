@@ -78,13 +78,15 @@ function Tasks() {
     return color.border;
   }
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
   useEffect(() => {
     fetchTasks();
   }, []);
 
   const fetchTasks = async () => {
     try {
-      const response = await axios.get('/api/tasks');
+      const response = await axios.get(`${API_BASE}/api/tasks`);
       setTasks(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('获取任务失败:', error);
@@ -97,7 +99,7 @@ function Tasks() {
   const handleCreateTask = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/tasks', formData);
+      await axios.post(`${API_BASE}/api/tasks`, formData);
       setShowCreateModal(false);
       setFormData({
         title: '',
@@ -114,7 +116,7 @@ function Tasks() {
   const handleCheckin = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/checkin', {
+      await axios.post(`${API_BASE}/api/checkin`, {
         task_id: selectedTask.id,
         notes: checkinNotes
       });
@@ -141,7 +143,7 @@ function Tasks() {
   const handleUpdateTask = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`/api/tasks/${selectedTask.id}`, formData);
+      await axios.put(`${API_BASE}/api/tasks/${selectedTask.id}`, formData);
       setShowEditModal(false);
       setSelectedTask(null);
       setFormData({
@@ -159,7 +161,7 @@ function Tasks() {
   const handleDeleteTask = async (taskId) => {
     if (window.confirm('确定要删除这个任务吗？')) {
       try {
-        await axios.delete(`/api/tasks/${taskId}`);
+        await axios.delete(`${API_BASE}/api/tasks/${taskId}`);
         fetchTasks();
       } catch (error) {
         console.error('删除任务失败:', error);

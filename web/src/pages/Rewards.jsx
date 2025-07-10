@@ -26,6 +26,8 @@ function Rewards() {
     points_required: 50
   });
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
   useEffect(() => {
     fetchRewards();
     fetchPointsBalance();
@@ -33,7 +35,7 @@ function Rewards() {
 
   const fetchRewards = async () => {
     try {
-      const response = await axios.get('/api/rewards');
+      const response = await axios.get(`${API_BASE}/api/rewards`);
       setRewards(response.data);
     } catch (error) {
       console.error('获取奖励失败:', error);
@@ -44,7 +46,7 @@ function Rewards() {
 
   const fetchPointsBalance = async () => {
     try {
-      const response = await axios.get('/api/points/balance');
+      const response = await axios.get(`${API_BASE}/api/points/balance`);
       setPointsBalance(response.data.balance);
     } catch (error) {
       console.error('获取积分余额失败:', error);
@@ -54,7 +56,7 @@ function Rewards() {
   const handleCreateReward = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/rewards', formData);
+      await axios.post(`${API_BASE}/api/rewards`, formData);
       setShowCreateModal(false);
       setFormData({
         title: '',
@@ -81,7 +83,7 @@ function Rewards() {
   const handleUpdateReward = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`/api/rewards/${selectedReward.id}`, formData);
+      await axios.put(`${API_BASE}/api/rewards/${selectedReward.id}`, formData);
       setShowEditModal(false);
       setSelectedReward(null);
       setFormData({
@@ -98,7 +100,7 @@ function Rewards() {
   const handleRedeem = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`/api/rewards/${selectedReward.id}/redeem`);
+      await axios.post(`${API_BASE}/api/rewards/${selectedReward.id}/redeem`);
       setShowRedeemModal(false);
       setSelectedReward(null);
       fetchRewards();
@@ -111,7 +113,7 @@ function Rewards() {
   const handleDeleteReward = async (rewardId) => {
     if (window.confirm('确定要删除这个奖励吗？')) {
       try {
-        await axios.delete(`/api/rewards/${rewardId}`);
+        await axios.delete(`${API_BASE}/api/rewards/${rewardId}`);
         fetchRewards();
       } catch (error) {
         console.error('删除奖励失败:', error);

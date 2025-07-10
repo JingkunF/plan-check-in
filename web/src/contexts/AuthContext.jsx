@@ -14,6 +14,8 @@ export function AuthProvider({ children }) {
   // 设置axios默认配置
   axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
   // 从localStorage获取token
   const getToken = () => localStorage.getItem('token');
 
@@ -61,7 +63,7 @@ export function AuthProvider({ children }) {
       const token = getToken();
       if (token) {
         try {
-          const response = await axios.get('/api/user');
+          const response = await axios.get(`${API_BASE}/api/user`);
           setUser(response.data);
         } catch (error) {
           localStorage.removeItem('token');
@@ -75,7 +77,7 @@ export function AuthProvider({ children }) {
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post('/api/login', { username, password });
+      const response = await axios.post(`${API_BASE}/api/login`, { username, password });
       const { token, user } = response.data;
       
       localStorage.setItem('token', token);
@@ -93,7 +95,7 @@ export function AuthProvider({ children }) {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('/api/register', userData);
+      const response = await axios.post(`${API_BASE}/api/register`, userData);
       return { success: true, data: response.data };
     } catch (error) {
       return { 

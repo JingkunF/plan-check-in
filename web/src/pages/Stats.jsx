@@ -17,6 +17,7 @@ function Stats() {
   const [checkins, setCheckins] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 
   useEffect(() => {
@@ -26,9 +27,9 @@ function Stats() {
   const fetchStatsData = async () => {
     try {
       const [statsRes, pointsRes, checkinsRes] = await Promise.all([
-        axios.get('/api/stats'),
-        axios.get('/api/points'),
-        axios.get('/api/checkins')
+        axios.get(`${API_BASE}/api/stats`),
+        axios.get(`${API_BASE}/api/points`),
+        axios.get(`${API_BASE}/api/checkins`)
       ]);
 
       setStats(statsRes.data);

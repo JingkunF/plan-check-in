@@ -90,12 +90,13 @@ function Dashboard() {
     }
     
     try {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
       const [statsRes, tasksRes, rewardsRes, pointsRes, checkinsRes] = await Promise.all([
-        axios.get('/api/stats'),
-        axios.get('/api/tasks'),
-        axios.get('/api/rewards'),
-        axios.get('/api/points'),
-        axios.get('/api/checkins')
+        axios.get(`${API_BASE}/api/stats`),
+        axios.get(`${API_BASE}/api/tasks`),
+        axios.get(`${API_BASE}/api/rewards`),
+        axios.get(`${API_BASE}/api/points`),
+        axios.get(`${API_BASE}/api/checkins`)
       ]);
 
       setStats(statsRes.data);
@@ -114,7 +115,8 @@ function Dashboard() {
     if (!user) return;
     
     try {
-      const response = await axios.get('/api/points/balance');
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      const response = await axios.get(`${API_BASE}/api/points/balance`);
       setPointsBalance(response.data.balance);
     } catch (error) {
       console.error('获取积分余额失败:', error);
@@ -130,7 +132,8 @@ function Dashboard() {
     }
     
     try {
-      await axios.post('/api/tasks', taskFormData);
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      await axios.post(`${API_BASE}/api/tasks`, taskFormData);
       setShowCreateTaskModal(false);
       setTaskFormData({
         title: '',
@@ -152,7 +155,8 @@ function Dashboard() {
     }
     
     try {
-      await axios.post('/api/checkin', {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      await axios.post(`${API_BASE}/api/checkin`, {
         task_id: selectedTask.id,
         notes: checkinNotes
       });
@@ -180,7 +184,8 @@ function Dashboard() {
   const handleUpdateTask = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`/api/tasks/${selectedTask.id}`, taskFormData);
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      await axios.put(`${API_BASE}/api/tasks/${selectedTask.id}`, taskFormData);
       setShowEditTaskModal(false);
       setSelectedTask(null);
       setTaskFormData({
@@ -198,7 +203,8 @@ function Dashboard() {
   const handleDeleteTask = async (taskId) => {
     if (window.confirm('确定要删除这个任务吗？')) {
       try {
-        await axios.delete(`/api/tasks/${taskId}`);
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+        await axios.delete(`${API_BASE}/api/tasks/${taskId}`);
         fetchDashboardData();
       } catch (error) {
         console.error('删除任务失败:', error);
@@ -210,7 +216,8 @@ function Dashboard() {
   const handleCreateReward = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/rewards', rewardFormData);
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      await axios.post(`${API_BASE}/api/rewards`, rewardFormData);
       setShowCreateRewardModal(false);
       setRewardFormData({
         title: '',
@@ -227,7 +234,8 @@ function Dashboard() {
   const handleRedeem = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`/api/rewards/${selectedReward.id}/redeem`);
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      await axios.post(`${API_BASE}/api/rewards/${selectedReward.id}/redeem`);
       setShowRedeemModal(false);
       setSelectedReward(null);
       fetchDashboardData();
@@ -250,7 +258,8 @@ function Dashboard() {
   const handleUpdateReward = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`/api/rewards/${selectedReward.id}`, rewardFormData);
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      await axios.put(`${API_BASE}/api/rewards/${selectedReward.id}`, rewardFormData);
       setShowEditRewardModal(false);
       setSelectedReward(null);
       setRewardFormData({
@@ -267,7 +276,8 @@ function Dashboard() {
   const handleDeleteReward = async (rewardId) => {
     if (window.confirm('确定要删除这个奖励吗？')) {
       try {
-        await axios.delete(`/api/rewards/${rewardId}`);
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+        await axios.delete(`${API_BASE}/api/rewards/${rewardId}`);
         fetchDashboardData();
       } catch (error) {
         console.error('删除奖励失败:', error);
