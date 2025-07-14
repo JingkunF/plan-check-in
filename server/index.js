@@ -270,6 +270,26 @@ app.get('/api/users', authenticateToken, (req, res) => {
   });
 });
 
+// 获取总注册用户数
+app.get('/api/users/count', authenticateToken, (req, res) => {
+  db.get('SELECT COUNT(*) as count FROM users', [], (err, row) => {
+    if (err) return res.status(500).json({ error: '统计失败' });
+    res.json({ count: row.count });
+  });
+});
+
+// 获取每日新增用户数
+app.get('/api/users/daily_count', authenticateToken, (req, res) => {
+  db.all(
+    "SELECT DATE(created_at) as date, COUNT(*) as count FROM users GROUP BY DATE(created_at) ORDER BY date DESC LIMIT 30",
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: '统计失败' });
+      res.json(rows);
+    }
+  );
+});
+
 // 创建每日任务
 app.post('/api/tasks', authenticateToken, (req, res) => {
   const { title, description, points, category } = req.body;
